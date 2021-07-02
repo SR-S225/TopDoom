@@ -1,164 +1,243 @@
-import pygame 
-from pygame.locals import *
+#imports the modules needed
+import pygame
+from pygame.locals import*
 from math import sin
+import sys
 
 
+#initiates the pygame modue
 pygame.init()
 
-screenWidth = 400
-screenHeight = 400
+
+#sets the screen dimensions
+
+screenWidth = 740
+screenHeight = 600
 screen_size  = screenWidth,screenHeight
 game_window = pygame.display.set_mode((screenWidth,screenHeight))
+#names the window
 pygame.display.set_caption("TEST")
 
-bg_size = bg_width,bg_height = 800,800
+#sets the size of the background
+bg_size = bg_width,bg_height = 1500,1500
 
+#makes the background a surface for the game
 background = pygame.Surface(bg_size)
-wall = pygame.Surface(bg_size)
 
-
-
+#creates the clock (fps)
 clock = pygame.time.Clock()
 time_passed = 0
 
+
+
+
+
+
+
+
+
+
+
+#creates the class player
 class Player():
-  def __init__(self,x,y):
-    self.Image = pygame.image.load("myAvatar.png").convert()
-    self.Image = pygame.transform.scale(self.Image,(20,20))
-    self.rect = self.Image.get_rect()
-    self.rect.x = 200
-    self.rect.y = 200
-  
-  def getX(self):
-    return self.rect.x
+    #contructs the class with the given variables. Gives the player object these variables.
+    def __init__(self,the_map,x,y):
+        self.the_map = the_map
+        self.image = pygame.image.load("DoomguyUp.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image,(80,80))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.health = 100
+        self.armour = 0
 
-  def getY(self):
-    return self.rect.y
+    #returns the value of x
+    def getX(self):
+        return self.rect.x
+    #returns the value of y
+    def getY(self):
+        return self.rect.y
 
-  def handle_keys(self, width, height):
-      key = pygame.key.get_pressed()
-      dist = 2 
+    def get_rect(self):
+        return self.rect
 
-      if key[K_LEFT] and self.rect.x > 0: 
-            self.rect.x -= 500 * time_passed
-      
-      if key[K_RIGHT] and self.rect.x < width -20:
-            self.rect.x += 500 * time_passed
-         
-      if key[K_UP] and self.rect.y > 0:
-        self.rect.y -= 500 * time_passed
-      
-      if key[K_DOWN] and self.rect.y < height -20:
-        self.rect.y += 500 * time_passed
+    #this procedure is used to detect the keys pressed
+    def handle_keys(self, width, height,game_window,enemy):
+        #creates the key variabe to detect the key
+        key = pygame.key.get_pressed()
 
-  def update(self, screen):
-    pass
+        
 
-  def draw(self, game_window):
-    game_window.blit(self.Image, (int(self.rect.x), int(self.rect.y)))
-   
+        #this checks if the
+        if key[K_a] and self.rect.x > 0  :
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
+                self.rect.y += 20
+                self.move(0,0)
+            else:
+                self.move(-1, 0)
+            self.image = pygame.image.load("DoomguyLeft.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(80,80))
+            game_window.blit(self.image, self.rect)
+        if key[K_d] and self.rect.x < width -20:
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
+                self.rect.y -= 20
+                self.move(0,0)
+            else:
+                self.move(1, 0)
+            self.image = pygame.image.load("DoomguyRight.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(80,80))
+            game_window.blit(self.image, self.rect)
+        if key[K_w] and self.rect.y > 0:
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
+                self.rect.x += 20
+                self.move(0,0)
+            else:
+                self.move(0,-1)
+            self.image = pygame.image.load("DoomguyUp.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(80,80))
+            game_window.blit(self.image, self.rect)
+        if key[K_s] and self.rect.y < height -20 :
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
+                self.rect.x -= 20
+                self.move(0,0)
+            else:
+                self.move(0,1)
+            self.image = pygame.image.load("DoomguyDown.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(80,80))
+            game_window.blit(self.image, self.rect)
+        
 
 
+    def move(self, dx, dy):
+        movex = int(500 * time_passed * dx)
+        movey = int(500 * time_passed * dy)
+
+        if self.rect.right + movex >bg_width or self.rect.x + movex < 0:
+            return
+        if self.rect.bottom + movey > bg_height or self.rect.y + movey < 0:
+            return
+
+        collision_rect = pygame.Rect(self.rect.x + movex, self.rect.y + movey, self.rect.width, self.rect.height)
+
+
+        if self.move_okay(collision_rect):
+            self.rect.x += movex
+            self.rect.y += movey
+
+    def move_okay(self, rect):
+        for x in range(rect.x, rect.x + rect.width):
+            for y in range(rect.y, rect.y + rect.height):
+                if self.the_map.image.get_at((x,y)) == (0,0,0):
+                    return False
+        
+        
+                    
+        return True
+
+    def update(self, screen):
+        pass
+
+    def draw(self, game_window):
+        game_window.blit(self.image, self.rect)
+
+
+
+class Enemy():
+        #contructs the class with the given variables. Gives the player object these variables.
+    def __init__(self,the_map,x,y):
+        self.the_map = the_map
+        self.image = pygame.image.load("Enemy.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image,(80,80))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+    def get_rect(self):
+        return self.rect
+
+    def get_x(self):
+        return self.rect.x
+
+    def get_y(self):
+        return self.rect.y
+
+    def draw(self, game_window):
+        game_window.blit(self.image, self.rect)
+    
 
 
 
 class Map():
-  def __init__(self):
-    self.Image = pygame.image.load("testbackground.jpg").convert()
-    self.Image = pygame.transform.scale(self.Image,(800,800))
+    def __init__(self):
+        self.image = pygame.image.load("testbackground.jpg").convert()
+        self.image = pygame.transform.scale(self.image,(1500,1500))
 
-    self.rect = self.Image.get_rect()
-    self.x = 0
-    self.y = 0
-
-  def draw(self,background):
-    background.blit(self.Image, (0,0))
-
-class Walls():
-  def __init__(self):
-    self.Image = pygame.image.load("Walls.png").convert()
-    self.Image = pygame.transform.scale(self.Image,(800,800))
-
-    self.rect = self.Image.get_rect()
-    self.x = 0
-    self.y = 0
-
-  def draw(self,wall):
-    wall.blit(self.Image, (0,0))
+        self.rect = self.image.get_rect()
+        self.x = 0
+        self.y = 0
 
 
+    def draw(self,background):
+        background.blit(self.image, (0,0))
 
 
 class Camera(object):
-	def __init__(self, width, height):
-		self.rect = pygame.Rect(0,0, width, height)
-		self.width = width
-		self.height = height
-		
-	def update(self, target):
-		x = target.rect.x - int(screenWidth/2)
-		y = target.rect.y - int(screenHeight/2)
+    def __init__(self, width, height):
+        self.rect = pygame.Rect(0,0, width, height)
+        self.width = width
+        self.height = height
 
-		x = max(0, x) 
-		y = max(0, y)
-	
-		x = min((bg_width-screenWidth), x)
-		y = min((bg_height-screenHeight), y)
-		
-		self.rect = pygame.Rect(x, y, self.width, self.height)
+    def update(self, target):
+        x = target.rect.x - int(screenWidth/2)
+        y = target.rect.y - int(screenHeight/2)
 
+        x = max(0, x)
+        y = max(0, y)
 
+        x = min((bg_width-screenWidth), x)
+        y = min((bg_height-screenHeight), y)
 
-		
+        self.rect = pygame.Rect(x, y, self.width, self.height)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-player = Player(200,200)
 camera = Camera(screenWidth,screenHeight)
-map = Map()
-walls = Walls()
-
-leave = False
-while not leave:
-  for event in pygame.event.get():
-    if event.type == pygame.QUIT:
-      pygame.quit() 
-      running = False
-      continue
-  
-  player.handle_keys(bg_width, bg_height)
-
-  map.draw(background)
-
-  walls.draw(wall)
-
-  player.update(background)
-  player.draw(background)
-
-  camera.update(player)
+the_map = Map()
+player = Player(the_map, 700, 900)
+enemy = Enemy(the_map,700,700)
 
 
-  game_window.blit(background, (0,0), camera.rect)
 
-  player.rect.clamp_ip(background.get_rect())
 
-  pygame.display.update()
-  pygame.display.flip()
 
-  time_passed = clock.tick() / 1000
 
-  
-pygame.quit()
-quit()
+
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            continue
+
+
+    the_map.draw(background)
+
+    player.handle_keys(bg_width, bg_height,game_window,enemy)
+    camera.update(player)
+
+    player.draw(background)
+    enemy.draw(background)
+
+    print((enemy.get_rect()).colliderect(player.get_rect()))
+        
+
+
+    game_window.blit(background, (0,0), camera.rect)
+
+    player.rect.clamp_ip(background.get_rect())
+
+    pygame.display.update()
+
+    time_passed = clock.tick() / 1000
+
+
+
