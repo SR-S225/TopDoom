@@ -1,5 +1,6 @@
 #imports the modules needed
 import pygame
+import os
 from pygame.locals import*
 from math import sin
 import sys
@@ -8,31 +9,82 @@ import sys
 #initiates the pygame modue
 pygame.init()
 
+#pygame.mouse.set_visible(0)
 
 #sets the screen dimensions
 
-screenWidth = 740
-screenHeight = 600
+screenWidth = 1920
+screenHeight = 1080
 screen_size  = screenWidth,screenHeight
+#os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
+#, pygame.NOFRAME
 game_window = pygame.display.set_mode((screenWidth,screenHeight))
 #names the window
 pygame.display.set_caption("TEST")
 
 #sets the size of the background
-bg_size = bg_width,bg_height = 1500,1500
+bg_size = bg_width,bg_height = 2000,2000
 
 #makes the background a surface for the game
 background = pygame.Surface(bg_size)
 
 #creates the clock (fps)
 clock = pygame.time.Clock()
+Otherclock = pygame.time.Clock()
 time_passed = 0
 
 
 
 
+black   = (0,0,0)
+bRed = (136,8,8)
+white  = (255,255,255)
+label = (130, 132, 135)
+error = (209, 13, 13)
 
 
+
+titleFont  = "AmazDooMLeft.ttf"
+titleFont=pygame.font.Font(titleFont,70)
+
+bFont  = "Retro.ttf"
+bFont=pygame.font.Font(bFont,40)
+
+
+
+
+
+
+
+
+
+def formatText(text, font, color, surface, x, y):
+    textobj = font.render(text, 1, color)
+    textrect = textobj.get_rect()
+    textrect.topleft = (x, y)
+    surface.blit(textobj,textrect)
+     
+
+
+
+
+def death():
+    running = False
+    click = False
+    while not running:
+            
+                
+                
+        mx, my = pygame.mouse.get_pos()
+
+
+        pauseBack = pygame.image.load("pauseBackground.png").convert_alpha()
+        pauseBack= pygame.transform.scale(pauseBack,(740,600))
+        pauseBack.set_alpha(50)
+        formatText('You are DEAD!', bFont, bRed, game_window,screenWidth/2-100 , 140)
+
+        pygame.display.update()
+        clock.tick(60)
 
 
 
@@ -50,7 +102,24 @@ class Player():
         self.rect.y = y
         self.health = 100
         self.armour = 0
+        
 
+
+    def updateHealth(self,game_window):
+        #formatText(str(self.health), bFont, bRed, game_window,50 , 50)
+        pygame.display.flip()
+        
+        if self.health == 0:
+            death()
+        
+
+    def getHealth(self):
+        return self.health
+
+    def getArmour(self):
+        return self.armour
+        
+        
     #returns the value of x
     def getX(self):
         return self.rect.x
@@ -71,35 +140,47 @@ class Player():
         #this checks if the
         if key[K_a] and self.rect.x > 0  :
             if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                self.rect.y += 20
-                self.move(0,0)
+                #self.rect.y += 20
+                self.health -= 1
+                self.move(2,0)
+
             else:
                 self.move(-1, 0)
             self.image = pygame.image.load("DoomguyLeft.png").convert_alpha()
             self.image = pygame.transform.scale(self.image,(80,80))
             game_window.blit(self.image, self.rect)
+
+
+
         if key[K_d] and self.rect.x < width -20:
             if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                self.rect.y -= 20
-                self.move(0,0)
+                #self.rect.y -= 20
+                self.health -= 1
+                self.move(-2,0)
             else:
                 self.move(1, 0)
             self.image = pygame.image.load("DoomguyRight.png").convert_alpha()
             self.image = pygame.transform.scale(self.image,(80,80))
             game_window.blit(self.image, self.rect)
+
+
         if key[K_w] and self.rect.y > 0:
             if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                self.rect.x += 20
-                self.move(0,0)
+                #self.rect.x += 20
+                self.health -= 1
+                self.move(0,2)
             else:
                 self.move(0,-1)
             self.image = pygame.image.load("DoomguyUp.png").convert_alpha()
             self.image = pygame.transform.scale(self.image,(80,80))
             game_window.blit(self.image, self.rect)
+
+
         if key[K_s] and self.rect.y < height -20 :
             if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                self.rect.x -= 20
-                self.move(0,0)
+                #self.rect.x -= 20
+                self.health -= 1
+                self.move(0,-2)
             else:
                 self.move(0,1)
             self.image = pygame.image.load("DoomguyDown.png").convert_alpha()
@@ -109,36 +190,90 @@ class Player():
 
 
     def move(self, dx, dy):
+        #sets the moxe x and y values
         movex = int(500 * time_passed * dx)
         movey = int(500 * time_passed * dy)
 
+        #This is checking if the move values are greater or less than the size of the game window. Stopping the player from being able to move off the screen.
         if self.rect.right + movex >bg_width or self.rect.x + movex < 0:
             return
         if self.rect.bottom + movey > bg_height or self.rect.y + movey < 0:
             return
 
+        #This is now creation a collision check. By adding the new x an y coordiantes of the player and the with and height of the player.
         collision_rect = pygame.Rect(self.rect.x + movex, self.rect.y + movey, self.rect.width, self.rect.height)
 
-
+        #this now calls the function move okay to check if it should move the player.
         if self.move_okay(collision_rect):
+            #Changes the players x and y coordinates allowing them to move. 
             self.rect.x += movex
             self.rect.y += movey
 
     def move_okay(self, rect):
+        #This is now using the collision rect values. 
+        #This is now looping through the x and y coordinats around the player. 
         for x in range(rect.x, rect.x + rect.width):
             for y in range(rect.y, rect.y + rect.height):
+                #checks if at those x and y coordinates on the map have the colour black.
                 if self.the_map.image.get_at((x,y)) == (0,0,0):
+                    #if so it returns false stopping the player from moving.
                     return False
         
         
-                    
+        #if not it'll return true and then allow the player ot move to it's new position.        
         return True
 
     def update(self, screen):
         pass
 
     def draw(self, game_window):
+        #formatText(str(self.health), bFont, bRed, game_window,700 , 900)
         game_window.blit(self.image, self.rect)
+
+
+class Pointer():
+    def __init__ (self,x,y):
+        self.image = pygame.image.load("crosshair.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image,(40,40))
+        self.rect = self.image.get_rect()
+        self.rect.x = 2000-x
+        self.rect.y = 2000-y
+
+    def get_rect(self):
+        return self.rect
+
+    def get_x (self):
+        return self.rect.x
+
+    def get_y(self):
+        return self.rect.y
+
+    def get_rect(self):
+        return self.rect
+
+    def get_image(self):
+        return self.image
+
+
+    def draw(self,game_window):
+        self.rect.center = pygame.mouse.get_pos()
+        #game_window.blit(self.image,self.rect)
+        
+        
+    def collision(self,enemy):
+        if (enemy.get_rect()).colliderect(self.get_rect()) == 1:
+            self.image = pygame.image.load("crosshairActive.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(40,40))
+        else:
+            self.image = pygame.image.load("crosshair.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(40,40))
+        
+   
+
+
+
+
+
 
 
 
@@ -162,48 +297,62 @@ class Enemy():
         return self.rect.y
 
     def draw(self, game_window):
+        
         game_window.blit(self.image, self.rect)
     
 
 
-
+#makes the class map
 class Map():
+    #constructs the object
     def __init__(self):
+        #loads the image used for the back
         self.image = pygame.image.load("testbackground.jpg").convert()
-        self.image = pygame.transform.scale(self.image,(1500,1500))
+        #resizes the image
+        self.image = pygame.transform.scale(self.image,(2000,2000))
 
+        #Gets the rect values for the image
         self.rect = self.image.get_rect()
+        #sets the x and y position on the game window
         self.x = 0
         self.y = 0
 
-
+    #blits the background image on to the screen in the position 0,0
     def draw(self,background):
         background.blit(self.image, (0,0))
 
 
+#makes the camera class
 class Camera(object):
+    #constructs the camera objeect
     def __init__(self, width, height):
+        #Sets the rect value of the camera.(position)
         self.rect = pygame.Rect(0,0, width, height)
+        #sets the width and height of the camera the same as the game window
         self.width = width
         self.height = height
-
+    
+    #This updates the camera object
     def update(self, target):
+        #it sets the position of the camera to the players x and y values subtracting half the width and height of the game window. 
         x = target.rect.x - int(screenWidth/2)
         y = target.rect.y - int(screenHeight/2)
 
+        #this sets the max position the camera can go to stop it going off the screen. 
         x = max(0, x)
         y = max(0, y)
-
+        #This is the same as the max values. So the camera can never leave the map. 
         x = min((bg_width-screenWidth), x)
         y = min((bg_height-screenHeight), y)
 
+        #Sets the new rect position of the camera. 
         self.rect = pygame.Rect(x, y, self.width, self.height)
 
 camera = Camera(screenWidth,screenHeight)
 the_map = Map()
 player = Player(the_map, 700, 900)
-enemy = Enemy(the_map,700,700)
-
+enemy = Enemy(the_map,800,800)
+pointer = Pointer(0,0)
 
 
 
@@ -217,25 +366,36 @@ while running:
         if event.type == pygame.QUIT:
             running = False
             continue
-
+        
+    mx, my = pygame.mouse.get_pos()
 
     the_map.draw(background)
 
+    player.updateHealth(game_window)
     player.handle_keys(bg_width, bg_height,game_window,enemy)
     camera.update(player)
 
     player.draw(background)
     enemy.draw(background)
 
-    print((enemy.get_rect()).colliderect(player.get_rect()))
-        
-
-
+    pointer.draw(background)
+    pointer.collision(enemy)
+    
+    
+    print(enemy.get_rect())
+    print(pointer.get_rect())
     game_window.blit(background, (0,0), camera.rect)
 
     player.rect.clamp_ip(background.get_rect())
 
+    game_window.blit(pointer.get_image(),pointer.get_rect())
+   
+    formatText(("Health: "+ str(player.getHealth())), bFont, bRed, game_window,50 , 50)
+    
+    formatText(("Armour: "+ str(player.getArmour())), bFont, bRed, game_window,50 , 100)
+
     pygame.display.update()
+      
 
     time_passed = clock.tick() / 1000
 
