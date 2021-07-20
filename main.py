@@ -2,19 +2,19 @@
 import pygame
 import os
 from pygame.locals import*
-from math import sin
+import math
 import sys
 
 
 #initiates the pygame modue
 pygame.init()
 
-#pygame.mouse.set_visible(0)
+
 
 #sets the screen dimensions
 
-screenWidth = 1920
-screenHeight = 1080
+screenWidth = 740
+screenHeight = 600
 screen_size  = screenWidth,screenHeight
 #os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
 #, pygame.NOFRAME
@@ -107,7 +107,12 @@ class Player():
 
     def updateHealth(self,game_window):
         #formatText(str(self.health), bFont, bRed, game_window,50 , 50)
-        pygame.display.flip()
+        if self.health > 100:
+            self.health = 100
+        if self.armour > 100:
+            self.armour = 100
+        if self.armour < 0:
+            self.armour = 0
         
         if self.health == 0:
             death()
@@ -139,13 +144,18 @@ class Player():
 
         #this checks if the
         if key[K_a] and self.rect.x > 0  :
-            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                #self.rect.y += 20
-                self.health -= 1
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1 and enemy.get_death() == False:
+                if self.armour > 0:
+                    self.armour -= 2
+                else:
+                    self.health -= 1
                 self.move(2,0)
 
             else:
-                self.move(-1, 0)
+                if key[K_LSHIFT]:
+                    self.move(-2,0)
+                else:
+                    self.move(-1, 0)
             self.image = pygame.image.load("DoomguyLeft.png").convert_alpha()
             self.image = pygame.transform.scale(self.image,(80,80))
             game_window.blit(self.image, self.rect)
@@ -153,9 +163,11 @@ class Player():
 
 
         if key[K_d] and self.rect.x < width -20:
-            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                #self.rect.y -= 20
-                self.health -= 1
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1 and enemy.get_death() == False:
+                if self.armour > 0:
+                    self.armour -= 2
+                else:
+                    self.health -= 1
                 self.move(-2,0)
             else:
                 self.move(1, 0)
@@ -165,9 +177,11 @@ class Player():
 
 
         if key[K_w] and self.rect.y > 0:
-            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                #self.rect.x += 20
-                self.health -= 1
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1 and enemy.get_death() == False:
+                if self.armour > 0:
+                    self.armour -= 2
+                else:
+                    self.health -= 1
                 self.move(0,2)
             else:
                 self.move(0,-1)
@@ -177,9 +191,11 @@ class Player():
 
 
         if key[K_s] and self.rect.y < height -20 :
-            if (enemy.get_rect()).colliderect(player.get_rect()) == 1:
-                #self.rect.x -= 20
-                self.health -= 1
+            if (enemy.get_rect()).colliderect(player.get_rect()) == 1 and enemy.get_death() == False:
+                if self.armour > 0:
+                    self.armour -= 2
+                else:
+                    self.health -= 1
                 self.move(0,-2)
             else:
                 self.move(0,1)
@@ -236,8 +252,8 @@ class Pointer():
         self.image = pygame.image.load("crosshair.png").convert_alpha()
         self.image = pygame.transform.scale(self.image,(40,40))
         self.rect = self.image.get_rect()
-        self.rect.x = 2000-x
-        self.rect.y = 2000-y
+        self.rect.x = x
+        self.rect.y = y
 
     def get_rect(self):
         return self.rect
@@ -260,16 +276,53 @@ class Pointer():
         #game_window.blit(self.image,self.rect)
         
         
-    def collision(self,enemy):
-        if (enemy.get_rect()).colliderect(self.get_rect()) == 1:
+    def collision(self,enemy,camera):
+        click = False
+        enemy_collision_rect  = camera.update_rect(enemy)
+        if enemy_collision_rect.colliderect(self.rect) and enemy.get_death() == False:
             self.image = pygame.image.load("crosshairActive.png").convert_alpha()
             self.image = pygame.transform.scale(self.image,(40,40))
+            for event in pygame.event.get():
+                if event.type == MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        click = True
+            
+            if click:
+                enemy.hit()
+                enemy_health = enemy.get_health()
+                print(enemy_health)
+                
+            
         else:
             self.image = pygame.image.load("crosshair.png").convert_alpha()
             self.image = pygame.transform.scale(self.image,(40,40))
         
    
+class Bullet:
+    def __init__(self, x, y):
+        self.pos = (x, y)
+        mx, my = pygame.mouse.get_pos()
+        self.dir = (mx - x, my - y)
+        length = math.hypot(*self.dir)
+        if length == 0.0:
+            self.dir = (0, -1)
+        else:
+            self.dir = (self.dir[0]/length, self.dir[1]/length)
+        angle = math.degrees(math.atan2(-self.dir[1], self.dir[0]))
 
+        self.bullet = pygame.Surface((10, 4)).convert_alpha()
+        self.bullet.fill((255, 255, 255))
+        self.bullet = pygame.transform.rotate(self.bullet, angle)
+        self.speed = 2
+
+    def update(self):  
+        self.pos = (self.pos[0]+self.dir[0]*self.speed, 
+                    self.pos[1]+self.dir[1]*self.speed)
+
+    def draw(self, surf):
+        
+        bullet_rect = self.bullet.get_rect(center = self.pos)
+        surf.blit(self.bullet, bullet_rect)  
 
 
 
@@ -286,6 +339,8 @@ class Enemy():
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.health = 100
+        self.death = False
 
     def get_rect(self):
         return self.rect
@@ -295,11 +350,78 @@ class Enemy():
 
     def get_y(self):
         return self.rect.y
+    
+    def get_health(self):
+        return self.health
+
+    def get_death(self):
+        return self.death
+
+    def hit(self):
+        self.health -=10
+
 
     def draw(self, game_window):
         
         game_window.blit(self.image, self.rect)
+
+    def enemyAlive(self):
+        if self.health <= 0:
+            self.death = True
+            self.image = pygame.image.load("EnemyDead.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(80,80))
+
     
+
+
+class PickUp():
+    def __init__(self,type,x,y):
+        self.type = type.lower()
+        self.taken = False
+        self.image = pygame.image.load("empty.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image,(30,30))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+
+    
+    def get_rect(self):
+        return self.rect
+
+
+    def draw(self,game_window):
+        if self.taken == True:
+            self.image = pygame.image.load("empty.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image,(30,30))
+        else:
+            if self.type == "armour":
+                self.image = pygame.image.load("armour.png").convert_alpha()
+                self.image = pygame.transform.scale(self.image,(30,30))
+
+
+        game_window.blit(self.image,self.rect)
+
+
+    def pick(self,player):
+     
+        if (player.get_rect()).colliderect(self.get_rect()) == 1 and self.taken == False:
+            player.armour += 5
+            self.taken = True
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #makes the class map
@@ -348,15 +470,23 @@ class Camera(object):
         #Sets the new rect position of the camera. 
         self.rect = pygame.Rect(x, y, self.width, self.height)
 
+
+    def update_rect(self, target):
+	    x = target.rect.x - self.rect.x
+	    y = target.rect.y - self.rect.y
+	    updated_rect = pygame.Rect(x, y, target.rect.width, target.rect.height)
+	    return updated_rect
+
 camera = Camera(screenWidth,screenHeight)
 the_map = Map()
 player = Player(the_map, 700, 900)
-enemy = Enemy(the_map,800,800)
+enemy = [(Enemy(the_map,1298,1472)),(Enemy(the_map,800,800))]
 pointer = Pointer(0,0)
+pickup = [(PickUp("armour",700,800)),(PickUp("armour",1692,1463))]
 
 
-
-
+bullets = []
+pos = (250, 250)
 
 
 
@@ -366,24 +496,63 @@ while running:
         if event.type == pygame.QUIT:
             running = False
             continue
+        if event.type == MOUSEBUTTONDOWN:
         
-    mx, my = pygame.mouse.get_pos()
+            bullets.append(Bullet(*pos))
+
 
     the_map.draw(background)
 
+    for bullet in bullets[:]:
+        bullet.update()
+        if not game_window.get_rect().collidepoint(bullet.pos):
+            bullets.remove(bullet)
+
+  
+        
+    mx, my = pygame.mouse.get_pos()
+
+ 
+    
+
+    for p in pickup:
+        p.pick(player)
     player.updateHealth(game_window)
-    player.handle_keys(bg_width, bg_height,game_window,enemy)
+    for e in enemy:
+        player.handle_keys(bg_width, bg_height,game_window,e)
     camera.update(player)
 
+    for p in pickup:
+        p.draw(background)
+    
+
     player.draw(background)
-    enemy.draw(background)
+    for bullet in bullets:
+        print(bullets)
+        bullet.draw(game_window)
+
+   
+
+
+    for e in enemy:
+        e.enemyAlive()
+
+
+    for e in enemy:
+        e.draw(background)
+
+   
+
+
+  
 
     pointer.draw(background)
-    pointer.collision(enemy)
+    for e in enemy:
+        pointer.collision(e,camera)
+    
+
     
     
-    print(enemy.get_rect())
-    print(pointer.get_rect())
     game_window.blit(background, (0,0), camera.rect)
 
     player.rect.clamp_ip(background.get_rect())
